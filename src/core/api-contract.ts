@@ -459,6 +459,11 @@ export const runtimeStateStreamErrorMessageSchema = z.object({
 });
 export type RuntimeStateStreamErrorMessage = z.infer<typeof runtimeStateStreamErrorMessageSchema>;
 
+export const runtimeStateStreamPingMessageSchema = z.object({
+	type: z.literal("ping"),
+});
+export type RuntimeStateStreamPingMessage = z.infer<typeof runtimeStateStreamPingMessageSchema>;
+
 export const runtimeStateStreamMessageSchema = z.discriminatedUnion("type", [
 	runtimeStateStreamSnapshotMessageSchema,
 	runtimeStateStreamWorkspaceStateMessageSchema,
@@ -471,6 +476,7 @@ export const runtimeStateStreamMessageSchema = z.discriminatedUnion("type", [
 	runtimeStateStreamMcpAuthUpdatedMessageSchema,
 	runtimeStateStreamClineSessionContextUpdatedMessageSchema,
 	runtimeStateStreamErrorMessageSchema,
+	runtimeStateStreamPingMessageSchema,
 ]);
 export type RuntimeStateStreamMessage = z.infer<typeof runtimeStateStreamMessageSchema>;
 

@@ -10,6 +10,7 @@ import type {
 	RuntimeStateStreamErrorMessage,
 	RuntimeStateStreamMcpAuthUpdatedMessage,
 	RuntimeStateStreamMessage,
+	RuntimeStateStreamPingMessage,
 	RuntimeStateStreamProjectsMessage,
 	RuntimeStateStreamSnapshotMessage,
 	RuntimeStateStreamTaskChatClearedMessage,
@@ -25,6 +26,7 @@ import { createWorkspaceMetadataMonitor } from "./workspace-metadata-monitor";
 import type { ResolvedWorkspaceStreamTarget, WorkspaceRegistry } from "./workspace-registry";
 
 const TASK_SESSION_STREAM_BATCH_MS = 150;
+const PING_INTERVAL_MS = 30_000;
 
 export interface DisposeRuntimeStateWorkspaceOptions {
 	disconnectClients?: boolean;
@@ -70,6 +72,7 @@ export function createRuntimeStateHub(deps: CreateRuntimeStateHubDependencies): 
 	const runtimeStateClientsByWorkspaceId = new Map<string, Set<WebSocket>>();
 	const runtimeStateClients = new Set<WebSocket>();
 	const runtimeStateWorkspaceIdByClient = new Map<WebSocket, string>();
+	const pingTimersByClient = new Map<WebSocket, NodeJS.Timeout>();
 	let clineSessionContextVersion = 0;
 	const runtimeStateWebSocketServer = new WebSocketServer({ noServer: true });
 	const workspaceMetadataMonitor = createWorkspaceMetadataMonitor({
@@ -223,6 +226,11 @@ export function createRuntimeStateHub(deps: CreateRuntimeStateHubDependencies): 
 	};
 
 	const cleanupRuntimeStateClient = (client: WebSocket) => {
+		const pingTimer = pingTimersByClient.get(client);
+		if (pingTimer) {
+			clearInterval(pingTimer);
+			pingTimersByClient.delete(client);
+		}
 		const workspaceId = runtimeStateWorkspaceIdByClient.get(client);
 		if (workspaceId) {
 			workspaceMetadataMonitor.disconnectWorkspace(workspaceId);
@@ -472,6 +480,15 @@ export function createRuntimeStateHub(deps: CreateRuntimeStateHubDependencies): 
 				if (workspace.didPruneProjects) {
 					void broadcastRuntimeProjectsUpdated(workspace.workspaceId);
 				}
+				pingTimersByClient.set(
+					client,
+					setInterval(() => {
+						if (client.readyState === WebSocket.OPEN) {
+							client.ping();
+							sendRuntimeStateMessage(client, { type: "ping" } satisfies RuntimeStateStreamPingMessage);
+						}
+					}, PING_INTERVAL_MS),
+				);
 			} catch (error) {
 				if (didConnectWorkspaceMonitor && monitorWorkspaceId) {
 					workspaceMetadataMonitor.disconnectWorkspace(monitorWorkspaceId);
@@ -584,6 +601,10 @@ export function createRuntimeStateHub(deps: CreateRuntimeStateHubDependencies): 
 			}
 			clineMessageUnsubscribeByWorkspaceId.clear();
 			workspaceMetadataMonitor.close();
+			for (const timer of pingTimersByClient.values()) {
+				clearInterval(timer);
+			}
+			pingTimersByClient.clear();
 			for (const client of runtimeStateClients) {
 				try {
 					client.terminate();
@@ -594,6 +615,7 @@ export function createRuntimeStateHub(deps: CreateRuntimeStateHubDependencies): 
 			runtimeStateClients.clear();
 			runtimeStateClientsByWorkspaceId.clear();
 			runtimeStateWorkspaceIdByClient.clear();
+			pingTimersByClient.clear();
 			await new Promise<void>((resolveCloseWebSockets) => {
 				runtimeStateWebSocketServer.close(() => {
 					resolveCloseWebSockets();
