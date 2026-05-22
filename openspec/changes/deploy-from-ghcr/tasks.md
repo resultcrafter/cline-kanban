@@ -14,15 +14,15 @@
 
 ## 3. Deploy on host
 
-- [ ] 3.1 Pull the ZAI image: `podman pull ghcr.io/resultcrafter/cline-kanban-zai:main`
-- [ ] 3.2 Stop and remove the old container: `podman stop cline-kanban && podman rm cline-kanban`
-- [ ] 3.3 Start new container from GHCR image with the same env vars and volumes
-- [ ] 3.4 Verify kanban starts (check logs, nginx proxy, WebSocket)
-- [ ] 3.5 Apply post-start fix: `podman exec -u kanban cline-kanban git config --global --add safe.directory '*'`
+- [x] 3.1 Pull the ZAI image: `podman pull ghcr.io/resultcrafter/cline-kanban-zai:main`
+- [x] 3.2 Stop and remove the old container: `podman stop cline-kanban && podman rm cline-kanban`
+- [x] 3.3 Start new container from GHCR image with the same env vars and volumes
+- [x] 3.4 Verify kanban starts (check logs, nginx proxy, WebSocket)
+- [x] 3.5 Apply post-start fix: `podman exec -u kanban cline-kanban git config --global --add safe.directory '*'`
 
 ## 4. Cleanup
 
 - [ ] 4.1 Tag a release (`v0.1.69` or similar) to trigger `v*` tag build with `latest` tag
-- [ ] 4.2 Cancel the `fix-podman-build-nofile` change (no longer needed)
+- [x] 4.2 Cancel the `fix-podman-build-nofile` change (no longer needed)
 - [ ] 4.3 Archive completed changes (`add-ghcr-container-build`, `fix-ws-disconnect-ping-pong`, `deploy-from-ghcr`)
-- [ ] 4.4 Remove old `localhost/cline-kanban:latest` image and dangling layers
+- [x] 4.4 Remove old `localhost/cline-kanban:latest` image and dangling layers
