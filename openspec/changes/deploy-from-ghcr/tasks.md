@@ -2,8 +2,8 @@
 
 - [ ] 1.1 Push `add-ghcr-container-build` branch to origin (if not already pushed)
 - [ ] 1.2 Push `fix-ws-disconnect-ping-pong` branch to origin (if not already pushed)
-- [ ] 1.3 Merge `fix-ws-disconnect-ping-pong` into `main` (WebSocket keepalive fix)
-- [ ] 1.4 Merge `add-ghcr-container-build` into `main` (Dockerfile, container.yml, docker/*)
+- [x] 1.3 Merge `fix-ws-disconnect-ping-pong` into `main` (WebSocket keepalive fix)
+- [x] 1.4 Merge `add-ghcr-container-build` into `main` (Dockerfile, container.yml, docker/*)
 
 ## 2. Verify CI build
 

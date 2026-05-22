@@ -1,4 +1,5 @@
-FROM ghcr.io/resultcrafter/cline-kanban:latest
+ARG BASE_TAG=latest
+FROM ghcr.io/resultcrafter/cline-kanban:${BASE_TAG}
 
 RUN npm install -g @z_ai/mcp-server
 

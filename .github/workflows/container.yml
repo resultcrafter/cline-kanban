@@ -58,13 +58,16 @@ jobs:
             TAG="${{ github.ref_name }}"
             echo "base_tags=${{ env.BASE_IMAGE }}:${TAG},${{ env.BASE_IMAGE }}:latest" >> "$GITHUB_OUTPUT"
             echo "zai_tags=${{ env.ZAI_IMAGE }}:${TAG},${{ env.ZAI_IMAGE }}:latest" >> "$GITHUB_OUTPUT"
+            echo "base_tag=${TAG}" >> "$GITHUB_OUTPUT"
           elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             TAG="${{ inputs.tag }}"
             echo "base_tags=${{ env.BASE_IMAGE }}:${TAG}" >> "$GITHUB_OUTPUT"
             echo "zai_tags=${{ env.ZAI_IMAGE }}:${TAG}" >> "$GITHUB_OUTPUT"
+            echo "base_tag=${TAG}" >> "$GITHUB_OUTPUT"
           else
             echo "base_tags=${{ env.BASE_IMAGE }}:main" >> "$GITHUB_OUTPUT"
             echo "zai_tags=${{ env.ZAI_IMAGE }}:main" >> "$GITHUB_OUTPUT"
+            echo "base_tag=main" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Set up Docker Buildx
@@ -87,5 +90,6 @@ jobs:
           file: ./Dockerfile.zai
           push: true
           tags: ${{ steps.meta.outputs.zai_tags }}
+          build-args: BASE_TAG=${{ steps.meta.outputs.base_tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
