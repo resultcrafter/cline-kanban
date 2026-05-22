@@ -19,6 +19,7 @@ import type {
 
 const STREAM_RECONNECT_BASE_DELAY_MS = 500;
 const STREAM_RECONNECT_MAX_DELAY_MS = 5_000;
+const PING_TIMEOUT_MS = 90_000;
 
 function mergeTaskSessionSummaries(
 	currentSessions: Record<string, RuntimeTaskSessionSummary>,
@@ -307,6 +308,7 @@ export function useRuntimeStateStream(requestedWorkspaceId: string | null): UseR
 		let cancelled = false;
 		let socket: WebSocket | null = null;
 		let reconnectTimer: number | null = null;
+		let livenessTimer: number | null = null;
 		let reconnectAttempt = 0;
 		let activeWorkspaceId = requestedWorkspaceId;
 		let requestedWorkspaceForConnection = requestedWorkspaceId;
@@ -314,6 +316,10 @@ export function useRuntimeStateStream(requestedWorkspaceId: string | null): UseR
 		dispatch({ type: "requested_workspace_changed" });
 
 		const cleanupSocket = () => {
+			if (livenessTimer !== null) {
+				window.clearTimeout(livenessTimer);
+				livenessTimer = null;
+			}
 			if (socket) {
 				socket.onopen = null;
 				socket.onmessage = null;
@@ -322,6 +328,17 @@ export function useRuntimeStateStream(requestedWorkspaceId: string | null): UseR
 				socket.close();
 				socket = null;
 			}
+		};
+
+		const resetLivenessTimer = () => {
+			if (livenessTimer !== null) {
+				window.clearTimeout(livenessTimer);
+			}
+			livenessTimer = window.setTimeout(() => {
+				if (socket && socket.readyState === WebSocket.OPEN) {
+					socket.close();
+				}
+			}, PING_TIMEOUT_MS);
 		};
 
 		const scheduleReconnect = () => {
@@ -359,11 +376,16 @@ export function useRuntimeStateStream(requestedWorkspaceId: string | null): UseR
 			}
 			socket.onopen = () => {
 				reconnectAttempt = 0;
+				resetLivenessTimer();
 				dispatch({ type: "stream_connected" });
 			};
 			socket.onmessage = (event) => {
+				resetLivenessTimer();
 				try {
 					const payload = JSON.parse(String(event.data)) as RuntimeStateStreamMessage;
+					if (payload.type === "ping") {
+						return;
+					}
 					if (payload.type === "snapshot") {
 						activeWorkspaceId = payload.currentProjectId;
 						dispatch({ type: "snapshot", payload });
