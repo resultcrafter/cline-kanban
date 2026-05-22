@@ -1,0 +1,91 @@
+name: Container
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Image tag (default: dev)"
+        required: false
+        type: string
+        default: "dev"
+
+concurrency:
+  group: container-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  BASE_IMAGE: ghcr.io/resultcrafter/cline-kanban
+  ZAI_IMAGE: ghcr.io/resultcrafter/cline-kanban-zai
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install web-ui dependencies
+        run: npm ci --prefix web-ui
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        run: |
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            TAG="${{ github.ref_name }}"
+            echo "base_tags=${{ env.BASE_IMAGE }}:${TAG},${{ env.BASE_IMAGE }}:latest" >> "$GITHUB_OUTPUT"
+            echo "zai_tags=${{ env.ZAI_IMAGE }}:${TAG},${{ env.ZAI_IMAGE }}:latest" >> "$GITHUB_OUTPUT"
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            TAG="${{ inputs.tag }}"
+            echo "base_tags=${{ env.BASE_IMAGE }}:${TAG}" >> "$GITHUB_OUTPUT"
+            echo "zai_tags=${{ env.ZAI_IMAGE }}:${TAG}" >> "$GITHUB_OUTPUT"
+          else
+            echo "base_tags=${{ env.BASE_IMAGE }}:main" >> "$GITHUB_OUTPUT"
+            echo "zai_tags=${{ env.ZAI_IMAGE }}:main" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push base image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.base_tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push ZAI image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile.zai
+          push: true
+          tags: ${{ steps.meta.outputs.zai_tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
