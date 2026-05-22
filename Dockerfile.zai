@@ -1,0 +1,9 @@
+FROM ghcr.io/resultcrafter/cline-kanban:latest
+
+RUN npm install -g @z_ai/mcp-server
+
+COPY docker/entrypoint-zai.sh /entrypoint-zai.sh
+RUN chmod +x /entrypoint-zai.sh
+
+ENTRYPOINT ["/entrypoint-zai.sh"]
+CMD ["gosu", "kanban", "node", "/app/dist/cli.js", "--host", "127.0.0.1", "--port", "3485"]

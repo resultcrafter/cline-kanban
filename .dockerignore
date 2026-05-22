@@ -1,0 +1,7 @@
+.git
+.github
+node_modules
+openspec
+web-ui/node_modules
+packages/desktop
+*.log
