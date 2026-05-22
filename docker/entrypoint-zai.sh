@@ -65,7 +65,6 @@ configure_zai_mcp() {
 }
 
 configure_zai_mcp
-fix_permissions
 
 echo "[entrypoint-zai] Delegating to base entrypoint: $@"
 exec /entrypoint.sh "$@"

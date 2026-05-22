@@ -7,10 +7,10 @@
 
 ## 2. Verify CI build
 
-- [ ] 2.1 Confirm the `Container` workflow triggered on the merge to `main`
-- [ ] 2.2 Wait for the build to succeed (base image + ZAI image)
-- [ ] 2.3 Verify both images appear at `ghcr.io/resultcrafter/cline-kanban:main` and `ghcr.io/resultcrafter/cline-kanban-zai:main`
-- [ ] 2.4 Set GHCR package visibility to Public (or configure podman login on host)
+- [x] 2.1 Confirm the `Container` workflow triggered on the merge to `main`
+- [x] 2.2 Wait for the build to succeed (base image + ZAI image)
+- [x] 2.3 Verify both images appear at `ghcr.io/resultcrafter/cline-kanban:main` and `ghcr.io/resultcrafter/cline-kanban-zai:main`
+- [x] 2.4 Set GHCR package visibility to Public (or configure podman login on host)
 
 ## 3. Deploy on host
 
