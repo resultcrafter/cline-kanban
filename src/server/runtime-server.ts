@@ -5,6 +5,7 @@ import { join } from "node:path";
 
 import { createHTTPHandler } from "@trpc/server/adapters/standalone";
 import { handleClineMcpOauthCallback } from "../cline-sdk/cline-mcp-runtime-service";
+import { createClineProviderService } from "../cline-sdk/cline-provider-service";
 import {
 	type ClineTaskSessionService,
 	createInMemoryClineTaskSessionService,
@@ -46,6 +47,7 @@ import { createRuntimeApi } from "../trpc/runtime-api";
 import { createWorkspaceApi } from "../trpc/workspace-api";
 import { getWebUiDir, normalizeRequestPath, readAsset } from "./assets";
 import { handleHttpRequest, handleSocketUpgrade } from "./middleware";
+import { matchOpenAiCompatRoute, handleOpenAiCompatRequest } from "./openai-compat-handler";
 import type { RuntimeStateHub } from "./runtime-state-hub";
 import type { WorkspaceRegistry } from "./workspace-registry";
 
@@ -142,6 +144,7 @@ export async function createRuntimeServer(deps: CreateRuntimeServerDependencies)
 	const getScopedTerminalManager = async (scope: RuntimeTrpcWorkspaceScope): Promise<TerminalSessionManager> =>
 		await deps.ensureTerminalManagerForWorkspace(scope.workspaceId, scope.workspacePath);
 	const clineTaskSessionServiceByWorkspaceId = new Map<string, ClineTaskSessionService>();
+	const clineProviderService = createClineProviderService();
 	const clineWatcherRegistry = createClineWatcherRegistry();
 	const getScopedClineTaskSessionService = async (
 		scope: RuntimeTrpcWorkspaceScope,
@@ -406,6 +409,17 @@ export async function createRuntimeServer(deps: CreateRuntimeServerDependencies)
 				res.writeHead(404, { "Content-Type": "application/json; charset=utf-8" });
 				res.end('{"error":"Not found"}');
 				return;
+			}
+
+			if (req.method === "POST") {
+				const projectSlug = matchOpenAiCompatRoute(pathname);
+				if (projectSlug) {
+					await handleOpenAiCompatRequest(req, res, projectSlug, {
+						getScopedClineTaskSessionService: getScopedClineTaskSessionService as (scope: { workspaceId: string; workspacePath: string }) => Promise<ClineTaskSessionService>,
+						resolveLaunchConfig: () => clineProviderService.resolveLaunchConfig(),
+					});
+					return;
+				}
 			}
 
 			const asset = await readAsset(webUiDir, pathname);
