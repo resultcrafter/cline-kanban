@@ -3,18 +3,11 @@ import type { ClineTaskSessionService, ClineTaskMessage } from "../cline-sdk/cli
 import type { ResolvedClineLaunchConfig } from "../cline-sdk/cline-provider-service";
 import { createHomeAgentSessionId } from "../core/home-agent-session";
 import type { RuntimeTaskSessionSummary } from "../core/api-contract";
-import { loadWorkspaceContextById } from "../state/workspace-state";
+import { loadWorkspaceContextById, listWorkspaceIndexEntries } from "../state/workspace-state";
 
 interface OpenAiCompatDeps {
 	getScopedClineTaskSessionService: (scope: { workspaceId: string; workspacePath: string }) => Promise<ClineTaskSessionService>;
 	resolveLaunchConfig: () => Promise<ResolvedClineLaunchConfig>;
-}
-
-const OPENAI_ROUTE_RE = /^\/([a-z0-9][a-z0-9-]*)\/v1\/chat\/completions$/;
-
-export function matchOpenAiCompatRoute(pathname: string): string | null {
-	const match = OPENAI_ROUTE_RE.exec(pathname);
-	return match ? match[1] : null;
 }
 
 function createErrorResponse(message: string, type: string, status: number, res: ServerResponse): void {
@@ -22,12 +15,12 @@ function createErrorResponse(message: string, type: string, status: number, res:
 	res.end(JSON.stringify({ error: { message, type } }));
 }
 
-function createChatChunk(id: string, delta: Record<string, unknown>, finishReason: string | null): string {
+function createChatChunk(id: string, model: string, delta: Record<string, unknown>, finishReason: string | null): string {
 	const chunk: Record<string, unknown> = {
 		id,
 		object: "chat.completion.chunk",
 		created: Math.floor(Date.now() / 1000),
-		model: "cline",
+		model,
 		choices: [{ index: 0, delta, finish_reason: finishReason }],
 	};
 	return `data: ${JSON.stringify(chunk)}\n\n`;
@@ -39,33 +32,6 @@ function validateAuth(req: IncomingMessage): boolean {
 	const authHeader = req.headers.authorization;
 	if (!authHeader?.startsWith("Bearer ")) return false;
 	return authHeader.slice(7) === apiKey;
-}
-
-interface ParsedOpenAiRequest {
-	text: string;
-	images?: string[];
-}
-
-function parseOpenAiRequest(body: unknown): ParsedOpenAiRequest {
-	if (!body || typeof body !== "object") throw { message: "Invalid JSON", type: "invalid_request_error", status: 400 };
-	const obj = body as Record<string, unknown>;
-	if (obj.stream === false) throw { message: "Only streaming is supported (set stream: true)", type: "invalid_request_error", status: 400 };
-	const messages = obj.messages;
-	if (!Array.isArray(messages) || messages.length === 0) throw { message: "messages is required and must be non-empty", type: "invalid_request_error", status: 400 };
-	let lastUserText: string | null = null;
-	let images: string[] | undefined;
-	for (let i = messages.length - 1; i >= 0; i--) {
-		const msg = messages[i];
-		if (msg && typeof msg === "object" && (msg as Record<string, unknown>).role === "user") {
-			const content = (msg as Record<string, unknown>).content;
-			if (typeof content === "string" && content.trim()) {
-				lastUserText = content.trim();
-				break;
-			}
-		}
-	}
-	if (!lastUserText) throw { message: "At least one user message with non-empty content is required", type: "invalid_request_error", status: 400 };
-	return { text: lastUserText, images };
 }
 
 function readBody(req: IncomingMessage, maxBytes = 1_048_576): Promise<string> {
@@ -85,10 +51,34 @@ function readBody(req: IncomingMessage, maxBytes = 1_048_576): Promise<string> {
 	});
 }
 
+export async function handleOpenAiModelsRequest(
+	req: IncomingMessage,
+	res: ServerResponse,
+): Promise<void> {
+	if (!validateAuth(req)) {
+		createErrorResponse("Unauthorized", "authentication_error", 401, res);
+		return;
+	}
+	try {
+		const entries = await listWorkspaceIndexEntries();
+		const now = Math.floor(Date.now() / 1000);
+		const models = entries.map((entry) => ({
+			id: entry.workspaceId,
+			object: "model" as const,
+			created: now,
+			owned_by: "kanban",
+		}));
+		res.writeHead(200, { "Content-Type": "application/json" });
+		res.end(JSON.stringify({ object: "list", data: models }));
+	} catch (error) {
+		const message = error instanceof Error ? error.message : "Internal server error";
+		createErrorResponse(message, "server_error", 500, res);
+	}
+}
+
 export async function handleOpenAiCompatRequest(
 	req: IncomingMessage,
 	res: ServerResponse,
-	projectSlug: string,
 	deps: OpenAiCompatDeps,
 ): Promise<void> {
 	try {
@@ -105,26 +95,50 @@ export async function handleOpenAiCompatRequest(
 			return;
 		}
 
-		let parsed: unknown;
+		let parsed: Record<string, unknown>;
 		try {
-			parsed = JSON.parse(rawBody);
+			parsed = JSON.parse(rawBody) as Record<string, unknown>;
 		} catch {
 			createErrorResponse("Invalid JSON", "invalid_request_error", 400, res);
 			return;
 		}
 
-		let request: ParsedOpenAiRequest;
-		try {
-			request = parseOpenAiRequest(parsed);
-		} catch (err: unknown) {
-			const e = err as { message: string; type: string; status: number };
-			createErrorResponse(e.message, e.type, e.status, res);
+		if (parsed.stream === false) {
+			createErrorResponse("Only streaming is supported (set stream: true)", "invalid_request_error", 400, res);
 			return;
 		}
 
-		const workspaceContext = await loadWorkspaceContextById(projectSlug);
+		const model = typeof parsed.model === "string" ? parsed.model.trim() : "";
+		if (!model) {
+			createErrorResponse("model is required", "invalid_request_error", 400, res);
+			return;
+		}
+
+		const messages = parsed.messages;
+		if (!Array.isArray(messages) || messages.length === 0) {
+			createErrorResponse("messages is required and must be non-empty", "invalid_request_error", 400, res);
+			return;
+		}
+
+		let lastUserText: string | null = null;
+		for (let i = messages.length - 1; i >= 0; i--) {
+			const msg = messages[i];
+			if (msg && typeof msg === "object" && (msg as Record<string, unknown>).role === "user") {
+				const content = (msg as Record<string, unknown>).content;
+				if (typeof content === "string" && content.trim()) {
+					lastUserText = content.trim();
+					break;
+				}
+			}
+		}
+		if (!lastUserText) {
+			createErrorResponse("At least one user message with non-empty content is required", "invalid_request_error", 400, res);
+			return;
+		}
+
+		const workspaceContext = await loadWorkspaceContextById(model);
 		if (!workspaceContext) {
-			createErrorResponse(`Project not found: ${projectSlug}`, "not_found_error", 404, res);
+			createErrorResponse(`Model not found: ${model}`, "not_found_error", 404, res);
 			return;
 		}
 
@@ -132,7 +146,7 @@ export async function handleOpenAiCompatRequest(
 		const service = await deps.getScopedClineTaskSessionService(scope);
 		const taskId = createHomeAgentSessionId(workspaceContext.workspaceId, "cline");
 
-		let summary: RuntimeTaskSessionSummary | null = await service.sendTaskSessionInput(taskId, request.text);
+		let summary: RuntimeTaskSessionSummary | null = await service.sendTaskSessionInput(taskId, lastUserText);
 		if (!summary) {
 			if (service.getSummary(taskId)?.state === "running") {
 				createErrorResponse("Agent is busy, try again later", "rate_limit_error", 429, res);
@@ -142,8 +156,7 @@ export async function handleOpenAiCompatRequest(
 			summary = await service.startTaskSession({
 				taskId,
 				cwd: workspaceContext.repoPath,
-				prompt: request.text,
-				images: request.images,
+				prompt: lastUserText,
 				resumeFromPersistence: true,
 				providerId: launchConfig.providerId,
 				modelId: launchConfig.modelId,
@@ -161,7 +174,7 @@ export async function handleOpenAiCompatRequest(
 		});
 
 		const chatId = `chatcmpl-${taskId}`;
-		res.write(createChatChunk(chatId, { role: "assistant" }, null));
+		res.write(createChatChunk(chatId, model, { role: "assistant" }, null));
 
 		let sentContent = false;
 		let finished = false;
@@ -176,9 +189,9 @@ export async function handleOpenAiCompatRequest(
 			if (finished) return;
 			cleanup();
 			if (!sentContent) {
-				res.write(createChatChunk(chatId, { content: "" }, null));
+				res.write(createChatChunk(chatId, model, { content: "" }, null));
 			}
-			res.write(createChatChunk(chatId, {}, reason));
+			res.write(createChatChunk(chatId, model, {}, reason));
 			res.write("data: [DONE]\n\n");
 			res.end();
 		};
@@ -187,17 +200,13 @@ export async function handleOpenAiCompatRequest(
 			if (msgTaskId !== taskId || finished) return;
 			if (message.role === "assistant" && message.content) {
 				sentContent = true;
-				res.write(createChatChunk(chatId, { content: message.content }, null));
+				res.write(createChatChunk(chatId, model, { content: message.content }, null));
 			}
 		};
 
 		const onSummary = (s: RuntimeTaskSessionSummary) => {
 			if (s.taskId !== taskId || finished) return;
-			if (s.state === "idle") {
-				onFinish("stop");
-			} else if (s.state === "awaiting_review") {
-				onFinish("stop");
-			} else if (s.state === "failed") {
+			if (s.state === "idle" || s.state === "awaiting_review" || s.state === "failed") {
 				onFinish("stop");
 			}
 		};
@@ -221,7 +230,7 @@ export async function handleOpenAiCompatRequest(
 			createErrorResponse(message, "server_error", 500, res);
 		} else {
 			try {
-				res.write(createChatChunk("chatcmpl-error", { content: `\n\nError: ${message}` }, "stop"));
+				res.write(createChatChunk("chatcmpl-error", "cline", { content: `\n\nError: ${message}` }, "stop"));
 				res.write("data: [DONE]\n\n");
 			} catch {}
 			res.end();

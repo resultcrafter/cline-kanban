@@ -36,7 +36,7 @@ http {
         add_header Access-Control-Allow-Headers "Authorization, Content-Type, X-Kanban-Workspace-Id" always;
         add_header Vary Origin always;
 
-        location ~ ^/[a-z0-9][a-z0-9-]*/v1/ {
+        location /v1/ {
             #AUTH_BLOCK#
             #AUTH_DIRECTIVE#
             if ($request_method = OPTIONS) {

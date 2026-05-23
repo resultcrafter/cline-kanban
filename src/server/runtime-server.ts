@@ -47,7 +47,7 @@ import { createRuntimeApi } from "../trpc/runtime-api";
 import { createWorkspaceApi } from "../trpc/workspace-api";
 import { getWebUiDir, normalizeRequestPath, readAsset } from "./assets";
 import { handleHttpRequest, handleSocketUpgrade } from "./middleware";
-import { matchOpenAiCompatRoute, handleOpenAiCompatRequest } from "./openai-compat-handler";
+import { handleOpenAiModelsRequest, handleOpenAiCompatRequest } from "./openai-compat-handler";
 import type { RuntimeStateHub } from "./runtime-state-hub";
 import type { WorkspaceRegistry } from "./workspace-registry";
 
@@ -411,15 +411,16 @@ export async function createRuntimeServer(deps: CreateRuntimeServerDependencies)
 				return;
 			}
 
-			if (req.method === "POST") {
-				const projectSlug = matchOpenAiCompatRoute(pathname);
-				if (projectSlug) {
-					await handleOpenAiCompatRequest(req, res, projectSlug, {
-						getScopedClineTaskSessionService: getScopedClineTaskSessionService as (scope: { workspaceId: string; workspacePath: string }) => Promise<ClineTaskSessionService>,
-						resolveLaunchConfig: () => clineProviderService.resolveLaunchConfig(),
-					});
-					return;
-				}
+			if (pathname === "/v1/models" && req.method === "GET") {
+				await handleOpenAiModelsRequest(req, res);
+				return;
+			}
+			if (pathname === "/v1/chat/completions" && req.method === "POST") {
+				await handleOpenAiCompatRequest(req, res, {
+					getScopedClineTaskSessionService: getScopedClineTaskSessionService as (scope: { workspaceId: string; workspacePath: string }) => Promise<ClineTaskSessionService>,
+					resolveLaunchConfig: () => clineProviderService.resolveLaunchConfig(),
+				});
+				return;
 			}
 
 			const asset = await readAsset(webUiDir, pathname);
