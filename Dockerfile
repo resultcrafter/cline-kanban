@@ -58,6 +58,9 @@ COPY --from=builder /build/node_modules/node-pty ./node_modules/node-pty
 
 EXPOSE 3484
 
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl -sf http://127.0.0.1:3484/api/trpc/projects.list || exit 1
+
 VOLUME ["/home/kanban/.cline", "/workspace"]
 
 ENTRYPOINT ["/entrypoint.sh"]

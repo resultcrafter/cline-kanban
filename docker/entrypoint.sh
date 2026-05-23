@@ -62,7 +62,7 @@ validate_nginx_conf() {
         for h in "${missing[@]}"; do
             echo "  - proxy_set_header $h"
         done
-        echo "[entrypoint] The generated nginx.conf may be stale. Rebuild with: docker compose build --no-cache"
+        echo "[entrypoint] The generated nginx.conf may be stale. Rebuild the container image and try again."
         exit 1
     fi
     echo "[entrypoint] Nginx WebSocket proxy headers validated OK"
@@ -222,6 +222,11 @@ fix_permissions() {
     echo "[entrypoint] Permissions fixed for /home/kanban/.cline and /home/kanban/.claude"
 }
 
+configure_git() {
+    gosu kanban git config --global --add safe.directory '*' 2>/dev/null || true
+    echo "[entrypoint] Git safe.directory configured for all repos"
+}
+
 cleanup() {
     echo ""
     echo "[entrypoint] Shutting down..."
@@ -237,6 +242,7 @@ trap 'cleanup' SIGINT SIGTERM
 
 setup_nginx
 validate_nginx_conf
+configure_git
 register_projects
 configure_claude_auth
 configure_default_agent
