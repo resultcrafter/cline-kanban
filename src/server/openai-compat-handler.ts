@@ -178,6 +178,7 @@ export async function handleOpenAiCompatRequest(
 
 		let sentContent = false;
 		let finished = false;
+		let previousContentLength = 0;
 
 		const cleanup = () => {
 			finished = true;
@@ -199,8 +200,12 @@ export async function handleOpenAiCompatRequest(
 		const onMessage = (msgTaskId: string, message: ClineTaskMessage) => {
 			if (msgTaskId !== taskId || finished) return;
 			if (message.role === "assistant" && message.content) {
-				sentContent = true;
-				res.write(createChatChunk(chatId, model, { content: message.content }, null));
+				const delta = message.content.slice(previousContentLength);
+				previousContentLength = message.content.length;
+				if (delta) {
+					sentContent = true;
+					res.write(createChatChunk(chatId, model, { content: delta }, null));
+				}
 			}
 		};
 
