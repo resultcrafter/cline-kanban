@@ -153,7 +153,7 @@ export async function handleOpenAiCompatRequest(
 				return;
 			}
 			const launchConfig = await deps.resolveLaunchConfig();
-			const enableAgentTeams = parsed.enableAgentTeams === true;
+			const enableAgentTeams = process.env.KANBAN_ENABLE_AGENT_TEAMS === "true" && parsed.enableAgentTeams === true;
 			summary = await service.startTaskSession({
 				taskId,
 				cwd: workspaceContext.repoPath,

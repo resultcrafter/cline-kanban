@@ -983,6 +983,7 @@ export const runtimeTaskSessionStartRequestSchema = z.object({
 	images: z.array(runtimeTaskImageSchema).optional(),
 	startInPlanMode: z.boolean().optional(),
 	mode: runtimeTaskSessionModeSchema.optional(),
+	enableAgentTeams: z.boolean().optional(),
 	resumeFromTrash: z.boolean().optional(),
 	baseRef: z.string(),
 	cols: z.number().int().positive().optional(),
@@ -1065,6 +1066,7 @@ export const runtimeTaskChatSendRequestSchema = z.object({
 	text: z.string(),
 	images: z.array(runtimeTaskImageSchema).optional(),
 	mode: runtimeTaskSessionModeSchema.optional(),
+	enableAgentTeams: z.boolean().optional(),
 });
 export type RuntimeTaskChatSendRequest = z.infer<typeof runtimeTaskChatSendRequestSchema>;
 

@@ -25,6 +25,7 @@ import {
 export { CLINE_MODEL_CATALOG_DEFAULTS } from "./sdk-provider-boundary";
 
 const DEFAULT_CLINE_MAX_CONSECUTIVE_MISTAKES = 6;
+const ENABLE_AGENT_TEAMS = process.env.KANBAN_ENABLE_AGENT_TEAMS === "true";
 
 interface ClineSessionHostBoundary {
 	start(input: ClineSdkStartSessionInput): Promise<{ sessionId: string; result?: unknown }>;
@@ -220,9 +221,9 @@ export class InMemoryClineSessionRuntime implements ClineSessionRuntime {
 					cwd: request.cwd,
 					mode: resolvedMode,
 					enableTools: true,
-					enableSpawnAgent: request.enableAgentTeams ?? false,
-					enableAgentTeams: request.enableAgentTeams ?? false,
-					...(request.enableAgentTeams ? { teamName: request.teamName ?? request.taskId } : {}),
+					enableSpawnAgent: ENABLE_AGENT_TEAMS && (request.enableAgentTeams ?? false),
+					enableAgentTeams: ENABLE_AGENT_TEAMS && (request.enableAgentTeams ?? false),
+					...(ENABLE_AGENT_TEAMS && request.enableAgentTeams ? { teamName: request.teamName ?? request.taskId } : {}),
 					...(hasMcpExtraTools ? { disableMcpSettingsTools: true } : {}),
 					execution: {
 						maxConsecutiveMistakes: DEFAULT_CLINE_MAX_CONSECUTIVE_MISTAKES,
