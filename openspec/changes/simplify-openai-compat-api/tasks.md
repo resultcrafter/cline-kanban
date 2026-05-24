@@ -17,10 +17,10 @@
 
 ## 4. Verify
 
-- [ ] 4.1 Commit, push, verify CI builds
-- [ ] 4.2 Pull new image, redeploy container
-- [ ] 4.3 Test `GET /v1/models` — verify all projects appear as models
-- [ ] 4.4 Test `POST /v1/chat/completions` with `model: "translator-copilot-service"` — verify SSE streaming works
-- [ ] 4.5 Test through nginx on port 3484
-- [ ] 4.6 Test error cases: missing model (400), unknown model (404), invalid auth (401)
+- [x] 4.1 Commit, push, verify CI builds
+- [x] 4.2 Pull new image, redeploy container
+- [x] 4.3 Test `GET /v1/models` — verify all projects appear as models
+- [x] 4.4 Test `POST /v1/chat/completions` with `model: "translator-copilot-service"` — verify SSE streaming works
+- [x] 4.5 Test through nginx on port 3484
+- [x] 4.6 Test error cases: missing model (400), unknown model (404), invalid auth (401)
 - [ ] 4.7 Configure Open WebUI to use `http://127.0.0.1:3485/v1` as base URL — verify projects appear as models

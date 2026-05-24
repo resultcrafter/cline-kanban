@@ -221,9 +221,9 @@ export class InMemoryClineSessionRuntime implements ClineSessionRuntime {
 					cwd: request.cwd,
 					mode: resolvedMode,
 					enableTools: true,
-					enableSpawnAgent: ENABLE_AGENT_TEAMS && (request.enableAgentTeams ?? false),
-					enableAgentTeams: ENABLE_AGENT_TEAMS && (request.enableAgentTeams ?? false),
-					...(ENABLE_AGENT_TEAMS && request.enableAgentTeams ? { teamName: request.teamName ?? request.taskId } : {}),
+					enableSpawnAgent: ENABLE_AGENT_TEAMS,
+					enableAgentTeams: ENABLE_AGENT_TEAMS,
+					...(ENABLE_AGENT_TEAMS ? { teamName: request.teamName ?? request.taskId } : {}),
 					...(hasMcpExtraTools ? { disableMcpSettingsTools: true } : {}),
 					execution: {
 						maxConsecutiveMistakes: DEFAULT_CLINE_MAX_CONSECUTIVE_MISTAKES,

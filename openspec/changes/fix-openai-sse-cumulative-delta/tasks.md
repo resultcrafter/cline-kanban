@@ -5,7 +5,7 @@
 
 ## 2. Verify
 
-- [ ] 2.1 Commit, push, verify CI builds
-- [ ] 2.2 Pull new image, redeploy container
-- [ ] 2.3 Test via curl: `POST /v1/chat/completions` with `model: "geo-audit-adk"` — verify chunks are incremental (no cumulative prefix repetition)
+- [x] 2.1 Commit, push, verify CI builds
+- [x] 2.2 Pull new image, redeploy container
+- [x] 2.3 Test via curl: `POST /v1/chat/completions` with `model: "geo-audit-adk"` — verify chunks are incremental (no cumulative prefix repetition)
 - [ ] 2.4 Test via Open WebUI — send "hi" and verify response renders cleanly without "HelloHello! HowHello! How can" repetition

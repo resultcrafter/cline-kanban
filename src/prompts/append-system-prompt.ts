@@ -297,9 +297,17 @@ Parameters:
 - \`--project-path <path>\` optional workspace path. If not already registered in Kanban, it is auto-added for git repos.
 
 # Workflow Notes
+- Prefer `task list` first when task IDs or dependency IDs are needed.
+- To create multiple linked tasks, create tasks first, then call `task link` for each dependency edge.
 
-- Prefer \`task list\` first when task IDs or dependency IDs are needed.
-- To create multiple linked tasks, create tasks first, then call \`task link\` for each dependency edge.
+${
+	process.env.KANBAN_ENABLE_AGENT_TEAMS === "true"
+		? `# Agent Teams
+
+Agent Teams are enabled for this workspace. Every task you start will have agent team capabilities — the coding agent running in the task's worktree can spawn teammate sub-agents to work on subtasks in parallel. You don't need to do anything special; just start tasks normally with \`task start\`.
+`
+		: ""
+}
 `;
 }
 

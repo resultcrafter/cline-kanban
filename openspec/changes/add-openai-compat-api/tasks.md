@@ -22,9 +22,9 @@
 
 ## 4. Verify
 
-- [ ] 4.1 Commit, push, verify CI builds
-- [ ] 4.2 Pull new image, redeploy container with `KANBAN_API_KEY` env var
-- [ ] 4.3 Test with curl: `curl -X POST https://cline.resultcrafter.com/translator-copilot-service/v1/chat/completions -H "Authorization: Bearer <key>" -H "Content-Type: application/json" -d '{"model":"cline","messages":[{"role":"user","content":"hello"}],"stream":true}'`
+- [x] 4.1 Commit, push, verify CI builds
+- [x] 4.2 Pull new image, redeploy container with `KANBAN_API_KEY` env var
+- [x] 4.3 Test with curl: `curl -X POST https://cline.resultcrafter.com/translator-copilot-service/v1/chat/completions -H "Authorization: Bearer <key>" -H "Content-Type: application/json" -d '{"model":"cline","messages":[{"role":"user","content":"hello"}],"stream":true}'`
 - [ ] 4.4 Verify conversation appears in kanban web UI for that project
 - [ ] 4.5 Send a follow-up message via kanban UI, then send another via the API — verify both show in both interfaces
-- [ ] 4.6 Test error cases: invalid auth (401), unknown project (404), stream:false (400), empty messages (400)
+- [x] 4.6 Test error cases: invalid auth (401), unknown project (404), stream:false (400), empty messages (400)
