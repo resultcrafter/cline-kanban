@@ -1,4 +1,4 @@
-import { readdir, stat } from "node:fs/promises";
+import { readdir, rm, stat } from "node:fs/promises";
 import { dirname, isAbsolute, resolve } from "node:path";
 import type {
 	RuntimeBoardData,
@@ -94,6 +94,7 @@ export function createProjectsApi(deps: CreateProjectsApiDependencies): RuntimeT
 						} satisfies RuntimeProjectAddResponse;
 					}
 					projectPath = cloneResult.clonedPath;
+					let cloneCleanupPath: string | null = projectPath;
 				} else {
 					// path is guaranteed to exist here by the schema refine and the gitUrl branch above.
 					projectPath = deps.resolveProjectInputPath(body.path as string, resolveBasePath);
@@ -119,6 +120,10 @@ export function createProjectsApi(deps: CreateProjectsApiDependencies): RuntimeT
 				} else {
 					const commitResult = await ensureInitialCommit(projectPath);
 					if (!commitResult.ok) {
+						// Cleanup orphan cloned directory on failure
+						if (cloneCleanupPath) {
+							await rm(cloneCleanupPath, { recursive: true, force: true }).catch(() => {});
+						}
 						return {
 							ok: false,
 							project: null,
@@ -138,6 +143,7 @@ export function createProjectsApi(deps: CreateProjectsApiDependencies): RuntimeT
 				}
 				const taskCounts = await deps.summarizeProjectTaskCounts(context.workspaceId, context.repoPath);
 				void deps.broadcastRuntimeProjectsUpdated(context.workspaceId);
+				cloneCleanupPath = null;
 				return {
 					ok: true,
 					project: deps.createProjectSummary({
@@ -145,8 +151,12 @@ export function createProjectsApi(deps: CreateProjectsApiDependencies): RuntimeT
 						repoPath: context.repoPath,
 						taskCounts,
 					}),
-				} satisfies RuntimeProjectAddResponse;
+				} satisfies RuntimeProjectAddResponse;\
 			} catch (error) {
+				// Cleanup orphan cloned directory on any error
+				if (typeof cloneCleanupPath === 'string') {
+					await rm(cloneCleanupPath, { recursive: true, force: true }).catch(() => {});
+				}
 				const message = error instanceof Error ? error.message : String(error);
 				return {
 					ok: false,
@@ -224,7 +234,7 @@ export function createProjectsApi(deps: CreateProjectsApiDependencies): RuntimeT
 				}
 				return {
 					ok: true,
-				};
+				};\
 			} catch (error) {
 				const message = error instanceof Error ? error.message : String(error);
 				return {
@@ -246,7 +256,7 @@ export function createProjectsApi(deps: CreateProjectsApiDependencies): RuntimeT
 				return {
 					ok: true,
 					path: selectedPath,
-				};
+				};\
 			} catch (error) {
 				const message = error instanceof Error ? error.message : String(error);
 				return {
@@ -342,7 +352,7 @@ export function createProjectsApi(deps: CreateProjectsApiDependencies): RuntimeT
 					parentPath,
 					rootPath,
 					entries,
-				} satisfies RuntimeDirectoryListResponse;
+				} satisfies RuntimeDirectoryListResponse;\
 			} catch (error) {
 				const message = error instanceof Error ? error.message : String(error);
 				const isPermissionError =

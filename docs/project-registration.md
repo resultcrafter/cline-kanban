@@ -125,6 +125,10 @@ GIT_CONFIG_COUNT=1
 GIT_CONFIG_KEY_0=safe.directory
 GIT_CONFIG_VALUE_0=*
 
+# Git identity for commits (REQUIRED — without this, cloning empty repos and auto-commit fail)
+GIT_USER_NAME=<your-github-username>
+GIT_USER_EMAIL=<your-github-email>
+
 # Optional: ZAI MCP integration
 # Z_AI_API_KEY=<key>
 ```

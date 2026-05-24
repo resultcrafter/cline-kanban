@@ -225,6 +225,16 @@ fix_permissions() {
 configure_git() {
     gosu kanban git config --global --add safe.directory '*' 2>/dev/null || true
     echo "[entrypoint] Git safe.directory configured for all repos"
+
+    if [ -n "${GIT_USER_NAME:-}" ] && [ -n "${GIT_USER_EMAIL:-}" ]; then
+        gosu kanban git config --global user.name "${GIT_USER_NAME}"
+        gosu kanban git config --global user.email "${GIT_USER_EMAIL}"
+        echo "[entrypoint] Git identity configured: ${GIT_USER_NAME} <${GIT_USER_EMAIL}>"
+    else
+        echo "[entrypoint] WARNING: GIT_USER_NAME/GIT_USER_EMAIL not set."
+        echo "[entrypoint] Cloning empty repos and auto-commit will fail."
+        echo "[entrypoint] Set them in .env: GIT_USER_NAME=Name GIT_USER_EMAIL=email"
+    fi
 }
 
 cleanup() {
