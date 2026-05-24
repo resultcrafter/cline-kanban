@@ -76,6 +76,7 @@ export function createProjectsApi(deps: CreateProjectsApiDependencies): RuntimeT
 				: null;
 			const resolveBasePath = preferredWorkspaceContext?.repoPath ?? deps.getActiveWorkspacePath() ?? process.cwd();
 			try {
+			let cloneCleanupPath: string | null = null;
 				let projectPath: string;
 				if (body.gitUrl) {
 					// Clone from Git URL. If a custom path is provided alongside
@@ -94,7 +95,6 @@ export function createProjectsApi(deps: CreateProjectsApiDependencies): RuntimeT
 						} satisfies RuntimeProjectAddResponse;
 					}
 					projectPath = cloneResult.clonedPath;
-					let cloneCleanupPath: string | null = projectPath;
 				} else {
 					// path is guaranteed to exist here by the schema refine and the gitUrl branch above.
 					projectPath = deps.resolveProjectInputPath(body.path as string, resolveBasePath);
