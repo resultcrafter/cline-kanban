@@ -297,8 +297,8 @@ Parameters:
 - \`--project-path <path>\` optional workspace path. If not already registered in Kanban, it is auto-added for git repos.
 
 # Workflow Notes
-- Prefer `task list` first when task IDs or dependency IDs are needed.
-- To create multiple linked tasks, create tasks first, then call `task link` for each dependency edge.
+- Prefer \`task list\` first when task IDs or dependency IDs are needed.
+- To create multiple linked tasks, create tasks first, then call \`task link\` for each dependency edge.
 
 ${
 	process.env.KANBAN_ENABLE_AGENT_TEAMS === "true"
