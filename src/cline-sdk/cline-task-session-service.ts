@@ -74,6 +74,8 @@ export interface StartClineTaskSessionRequest {
 	baseUrl?: string | null;
 	reasoningEffort?: RuntimeClineReasoningEffort | null;
 	systemPrompt?: string | null;
+	enableAgentTeams?: boolean;
+	teamName?: string;
 }
 
 export interface ClineTaskSessionService {
@@ -431,6 +433,8 @@ export class InMemoryClineTaskSessionService implements ClineTaskSessionService 
 					systemPrompt,
 					userInstructionService: runtimeSetup.userInstructionService,
 					requestToolApproval: runtimeSetup.requestToolApproval,
+					enableAgentTeams: request.enableAgentTeams,
+					teamName: request.teamName,
 				});
 				const warningMessage = formatStartWarnings(startResult.warnings);
 				if (warningMessage) {

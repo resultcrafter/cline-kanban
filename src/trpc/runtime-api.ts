@@ -243,6 +243,8 @@ export function createRuntimeApi(deps: CreateRuntimeApiDependencies): RuntimeTrp
 						apiKey: clineLaunchConfig.apiKey,
 						baseUrl: clineLaunchConfig.baseUrl,
 						reasoningEffort: clineLaunchConfig.reasoningEffort,
+						enableAgentTeams: body.enableAgentTeams,
+						teamName: body.teamName,
 					});
 
 					let nextSummary = summary;
@@ -638,6 +640,8 @@ export function createRuntimeApi(deps: CreateRuntimeApiDependencies): RuntimeTrp
 							apiKey: clineLaunchConfig.apiKey,
 							baseUrl: clineLaunchConfig.baseUrl,
 							reasoningEffort: clineLaunchConfig.reasoningEffort,
+							enableAgentTeams: body.enableAgentTeams,
+							teamName: body.teamName,
 						});
 					}
 				}

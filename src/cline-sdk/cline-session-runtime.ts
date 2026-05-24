@@ -81,6 +81,8 @@ export interface StartClineSessionRuntimeRequest {
 	systemPrompt: string;
 	userInstructionService?: ClineSdkUserInstructionService;
 	requestToolApproval?: (request: ClineSdkToolApprovalRequest) => Promise<ClineSdkToolApprovalResult>;
+	enableAgentTeams?: boolean;
+	teamName?: string;
 }
 
 export interface StartClineSessionRuntimeResult {
@@ -218,8 +220,9 @@ export class InMemoryClineSessionRuntime implements ClineSessionRuntime {
 					cwd: request.cwd,
 					mode: resolvedMode,
 					enableTools: true,
-					enableSpawnAgent: false,
-					enableAgentTeams: false,
+					enableSpawnAgent: request.enableAgentTeams ?? false,
+					enableAgentTeams: request.enableAgentTeams ?? false,
+					...(request.enableAgentTeams ? { teamName: request.teamName ?? request.taskId } : {}),
 					...(hasMcpExtraTools ? { disableMcpSettingsTools: true } : {}),
 					execution: {
 						maxConsecutiveMistakes: DEFAULT_CLINE_MAX_CONSECUTIVE_MISTAKES,

@@ -153,6 +153,7 @@ export async function handleOpenAiCompatRequest(
 				return;
 			}
 			const launchConfig = await deps.resolveLaunchConfig();
+			const enableAgentTeams = parsed.enableAgentTeams === true;
 			summary = await service.startTaskSession({
 				taskId,
 				cwd: workspaceContext.repoPath,
@@ -163,6 +164,7 @@ export async function handleOpenAiCompatRequest(
 				apiKey: launchConfig.apiKey,
 				baseUrl: launchConfig.baseUrl,
 				reasoningEffort: launchConfig.reasoningEffort,
+				enableAgentTeams,
 			});
 		}
 
